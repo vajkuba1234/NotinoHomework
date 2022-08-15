@@ -1,6 +1,6 @@
 ﻿using MediatR;
+using NotinoHomework.Api.Common;
 using NotinoHomework.Api.Common.ViewModels;
-using NotinoHomework.Api.Serializers;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Common;
 
@@ -8,25 +8,29 @@ namespace NotinoHomework.Api.Commands
 {
     public class ConvertDocumentCommandHandler : IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>
     {
-        private readonly IByteSerializer byteSerializer;
+        private readonly IByteSerializer jsonSerializer;
+        private readonly IByteSerializer xmlSerializer;
 
-        public ConvertDocumentCommandHandler(IByteSerializer byteSerializer)
+        public ConvertDocumentCommandHandler(Func<FileType, IByteSerializer?> serializerProvider)
         {
-            this.byteSerializer = byteSerializer ?? throw new ArgumentNullException(nameof(byteSerializer));
+            jsonSerializer = serializerProvider(FileType.JSON) ?? throw new ArgumentNullException(nameof(serializerProvider));
+            xmlSerializer = serializerProvider(FileType.XML) ?? throw new ArgumentNullException(nameof(serializerProvider));
         }
 
         async Task<ConvertDocumentResponseViewModel> IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>.Handle(ConvertDocumentCommand request, CancellationToken cancellationToken)
         {
-            string fileName = request.FormFile.FileName;
-
             var document = await DeserializeRequestData(request);
 
             var outputStream = SerializeResponseData(document, request);
 
+            string fileName = GetFileName(request);
+            string contentType = GetContentType(request);
+
             var response = new ConvertDocumentResponseViewModel
             {
                 Content = outputStream,
-                FileName = $"converted-{fileName}"
+                FileName = fileName,
+                ContentType = contentType
             };
 
             return response;
@@ -38,13 +42,13 @@ namespace NotinoHomework.Api.Commands
 
             var dataBuffer = await GetBuffer(request.FormFile);
 
-            if (request.ConvertTo == Common.FileType.JSON)   //xml => json
+            if (request.ConvertTo == Common.FileType.JSON)
             {
-                document = ((XmlByteSerializer)byteSerializer).Deserialize<Document>(dataBuffer);
+                document = xmlSerializer.Deserialize<Document>(dataBuffer);
             }
-            else if (request.ConvertTo == Common.FileType.XML)   //json => xml
+            else if (request.ConvertTo == Common.FileType.XML)
             {
-                document = ((JsonByteSerializer)byteSerializer).Deserialize<Document>(dataBuffer);
+                document = jsonSerializer.Deserialize<Document>(dataBuffer);
             }
 
             if (document is null)
@@ -61,11 +65,11 @@ namespace NotinoHomework.Api.Commands
 
             if (request.ConvertTo == Common.FileType.JSON)
             {
-                streamData = ((JsonByteSerializer)byteSerializer).Serialize(document);
+                streamData = jsonSerializer.Serialize(document);
             }
             else if (request.ConvertTo == Common.FileType.XML)
             {
-                streamData = ((XmlByteSerializer)byteSerializer).Serialize(document);
+                streamData = xmlSerializer.Serialize(document);
             }
 
             if (streamData is null)
@@ -74,6 +78,27 @@ namespace NotinoHomework.Api.Commands
             }
 
             return new MemoryStream(streamData);
+        }
+
+        private string GetFileName(ConvertDocumentCommand request)
+        {
+            string formattedDateTime = DateTime.Now.ToString("yyyy_MM_dd-THH_mm_ss");
+            string fileExtension = string.Empty;
+
+            if (request.ConvertTo == FileType.XML) fileExtension = "xml";
+            else if (request.ConvertTo == FileType.JSON) fileExtension = "json";
+
+            return $"converted-document-{formattedDateTime}.{fileExtension}";
+        }
+
+        private string GetContentType(ConvertDocumentCommand request)
+        {
+            if (request.ConvertTo == Common.FileType.XML)
+            {
+                return "application/xml";
+            }
+
+            return "application/json";
         }
 
         private async Task<byte[]> GetBuffer(IFormFile formFile)

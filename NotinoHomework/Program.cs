@@ -1,8 +1,5 @@
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using NotinoHomework.Api.Commands;
-using NotinoHomework.Api.Common.ViewModels;
-using NotinoHomework.Api.Queries;
+using NotinoHomework.Api.Common;
 using NotinoHomework.Api.Serializers;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Api.Services;
@@ -12,17 +9,32 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMediatR(Assembly.GetExecutingAssembly());
 
+builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
 builder.Services.AddTransient<IFileService, FileService>();
-builder.Services.AddTransient<IByteSerializer, JsonByteSerializer>();
-builder.Services.AddTransient<IByteSerializer, XmlByteSerializer>();
-builder.Services.AddTransient<IStringSerializer, JsonStringSerializer>();
-builder.Services.AddTransient<IStringSerializer, XmlStringSerializer>();
+
+builder.Services.AddTransient<JsonByteSerializer>();
+builder.Services.AddTransient<XmlByteSerializer>();
+
+builder.Services.AddTransient<Func<FileType, IByteSerializer?>>(provider => key =>
+{
+    switch (key)
+    {
+        case NotinoHomework.Api.Common.FileType.XML:
+            return provider.GetService<XmlByteSerializer>();
+        case NotinoHomework.Api.Common.FileType.JSON:
+            return provider.GetService<JsonByteSerializer>();
+        default: return null;
+    }
+});
 
 var app = builder.Build();
+
+app.UseRouting();
 
 if (app.Environment.IsDevelopment())
 {
@@ -32,23 +44,26 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/homeworks/prefilled", async (ISender mediator, CancellationToken cancellationToken) =>
-{
-    var result = await mediator.Send(new GetDocumentQuery(), cancellationToken);
+app.UseEndpoints(endpoints => endpoints.MapControllers());
+app.MapControllers();
 
-    return Results.Ok(result);
-});
+//app.MapGet("/homeworks/prefilled", async (ISender mediator, CancellationToken cancellationToken) =>
+//{
+//    var result = await mediator.Send(new GetDocumentQuery(), cancellationToken);
 
-app.MapPost("/homeworks/convert", async (ISender mediator, [FromBody] ConvertDocumentRequestViewModel viewModel) =>
-{
-    var result = await mediator.Send(new ConvertDocumentCommand { ConvertTo = viewModel.FileType, FormFile = viewModel.FormFile });
+//    return Results.Ok(result);
+//});
 
-    if (viewModel.Email is not null)
-    {
-        //_ = await mediator.Send(new SendEmailCommand { ... });
-    }
+//app.MapPost("/homeworks/convert/minimal", async (ISender mediator, ConvertDocumentRequestViewModel viewModel) =>
+//{
+//    var result = await mediator.Send(new ConvertDocumentCommand { ConvertTo = viewModel.FileType, FormFile = viewModel.FormFile });
 
-    return Results.File(result.Content, "application/json", result.FileName);
-});
+//    if (viewModel.Email is not null)
+//    {
+//        //_ = await mediator.Send(new SendEmailCommand { ... });
+//    }
+
+//    return Results.File(result.Content, result.ContentType, result.FileName);
+//}).Accepts<IFormFile>("multipart/form-data").Accepts<ConvertDocumentRequestViewModel>("application/json").Produces(200);
 
 app.Run();
