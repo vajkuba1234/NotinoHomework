@@ -1,9 +1,15 @@
-﻿namespace NotinoHomework.Api.Common.ViewModels
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace NotinoHomework.Api.Common.ViewModels
 {
     public class ConvertDocumentRequestViewModel
     {
-        public EmailViewModel Email { get; set; }
         public FileType FileType { get; set; }
+
+        [Required]
         public IFormFile FormFile { get; set; }
+
+
+        public EmailViewModel? Email { get; set; }
     }
 }
