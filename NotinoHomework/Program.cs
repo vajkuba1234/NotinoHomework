@@ -1,5 +1,6 @@
 using MediatR;
 using NotinoHomework.Api.Common;
+using NotinoHomework.Api.Configs;
 using NotinoHomework.Api.Serializers;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Api.Services;
@@ -14,6 +15,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.Configure<IEmailOptions>(builder.Configuration.GetSection(EmailOptions.Email));
 
 builder.Services.AddTransient<IFileService, FileService>();
 

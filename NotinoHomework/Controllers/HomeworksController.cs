@@ -23,7 +23,14 @@ namespace NotinoHomework.Api.Controllers
 
             if (viewModel.Email is not null)
             {
-                _ = await mediator.Send(new SendEmailCommand { From = viewModel.Email.From, To = viewModel.Email.To, Subject = viewModel.Email.Subject }, token);
+                _ = await mediator.Send(new SendEmailCommand
+                {
+                    From = viewModel.Email.From,
+                    To = viewModel.Email.To,
+                    Subject = viewModel.Email.Subject,
+                    Attachment = result.Content,
+                    FileName = result.FileName
+                }, token);
             }
 
             return File(result.Content, result.ContentType, result.FileName);
