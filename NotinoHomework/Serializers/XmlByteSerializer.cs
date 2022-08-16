@@ -36,6 +36,20 @@ namespace NotinoHomework.Api.Serializers
             return ms.ToArray();
         }
 
+        public Task<byte[]> SerializeAsync<T>(T value, CancellationToken token = default)
+        {
+            var result = Serialize<T>(value);
+
+            return Task.FromResult(result);
+        }
+
+        public Task<T?> DeserializeAsync<T>(byte[] value, CancellationToken token = default)
+        {
+            var result = Deserialize<T>(value);
+
+            return Task.FromResult<T?>(result);
+        }
+
         private static XmlRootAttribute GetDefaultXmlRootAttribute()
         {
             return new XmlRootAttribute { ElementName = "root", IsNullable = true };

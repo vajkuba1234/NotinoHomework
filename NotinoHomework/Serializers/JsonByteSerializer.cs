@@ -26,6 +26,24 @@ namespace NotinoHomework.Api.Serializers
             return JsonSerializer.SerializeToUtf8Bytes<T>(value, options);
         }
 
+        public async Task<byte[]> SerializeAsync<T>(T value, CancellationToken token = default)
+        {
+            using var ms = new MemoryStream();
+
+            await JsonSerializer.SerializeAsync<T>(ms, value, options, token);
+
+            return ms.GetBuffer();
+        }
+
+        public Task<T?> DeserializeAsync<T>(byte[] value, CancellationToken token = default)
+        {
+            using var ms = new MemoryStream(value);
+
+            var result = JsonSerializer.DeserializeAsync<T>(ms, options, token);
+
+            return result.AsTask();
+        }
+
         private static JsonSerializerOptions GetDefaultJsonSerializerOptions()
         {
             return new JsonSerializerOptions(JsonSerializerDefaults.Web);
