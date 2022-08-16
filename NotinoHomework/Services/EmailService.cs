@@ -1,5 +1,4 @@
-﻿using NotinoHomework.Api.Common.ViewModels;
-using NotinoHomework.Api.Configs;
+﻿using NotinoHomework.Api.Configs;
 using System.Net.Mail;
 
 namespace NotinoHomework.Api.Services
