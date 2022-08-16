@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using NotinoHomework.Api.Common;
 using NotinoHomework.Api.Common.ViewModels;
+using NotinoHomework.Api.Extensions;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Common;
 
@@ -13,15 +14,17 @@ namespace NotinoHomework.Api.Commands
 
         public ConvertDocumentCommandHandler(Func<FileType, IByteSerializer?> serializerProvider)
         {
+            ArgumentNullException.ThrowIfNull(nameof(serializerProvider));
+
             jsonSerializer = serializerProvider(FileType.JSON) ?? throw new ArgumentNullException(nameof(serializerProvider));
             xmlSerializer = serializerProvider(FileType.XML) ?? throw new ArgumentNullException(nameof(serializerProvider));
         }
 
         async Task<ConvertDocumentResponseViewModel> IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>.Handle(ConvertDocumentCommand request, CancellationToken cancellationToken)
         {
-            var document = await DeserializeRequestData(request);
+            var document = await DeserializeRequestData(request, cancellationToken);
 
-            var outputStream = SerializeResponseData(document, request);
+            var outputStream = await SerializeResponseData(document, request, cancellationToken);
 
             string fileName = GetFileName(request);
             string contentType = GetContentType(request);
@@ -36,7 +39,7 @@ namespace NotinoHomework.Api.Commands
             return response;
         }
 
-        private async Task<Document> DeserializeRequestData(ConvertDocumentCommand request)
+        private async Task<Document> DeserializeRequestData(ConvertDocumentCommand request, CancellationToken token)
         {
             Document? document = null;
 
@@ -44,11 +47,11 @@ namespace NotinoHomework.Api.Commands
 
             if (request.ConvertTo == Common.FileType.JSON)
             {
-                document = xmlSerializer.Deserialize<Document>(dataBuffer);
+                document = await xmlSerializer.DeserializeAsync<Document>(dataBuffer, token);
             }
             else if (request.ConvertTo == Common.FileType.XML)
             {
-                document = jsonSerializer.Deserialize<Document>(dataBuffer);
+                document = await jsonSerializer.DeserializeAsync<Document>(dataBuffer, token);
             }
 
             if (document is null)
@@ -59,17 +62,17 @@ namespace NotinoHomework.Api.Commands
             return document;
         }
 
-        private Stream SerializeResponseData(Document document, ConvertDocumentCommand request)
+        private async Task<Stream> SerializeResponseData(Document document, ConvertDocumentCommand request, CancellationToken token)
         {
             byte[] streamData = null;
 
             if (request.ConvertTo == Common.FileType.JSON)
             {
-                streamData = jsonSerializer.Serialize(document);
+                streamData = await jsonSerializer.SerializeAsync(document, token);
             }
             else if (request.ConvertTo == Common.FileType.XML)
             {
-                streamData = xmlSerializer.Serialize(document);
+                streamData = await xmlSerializer.SerializeAsync(document, token);
             }
 
             if (streamData is null)
@@ -83,10 +86,7 @@ namespace NotinoHomework.Api.Commands
         private string GetFileName(ConvertDocumentCommand request)
         {
             string formattedDateTime = DateTime.Now.ToString("yyyy_MM_dd-THH_mm_ss");
-            string fileExtension = string.Empty;
-
-            if (request.ConvertTo == FileType.XML) fileExtension = "xml";
-            else if (request.ConvertTo == FileType.JSON) fileExtension = "json";
+            string fileExtension = request.ConvertTo.GetFileTypeExtension();
 
             return $"converted-document-{formattedDateTime}.{fileExtension}";
         }

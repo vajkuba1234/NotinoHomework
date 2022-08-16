@@ -22,14 +22,12 @@ builder.Services.AddTransient<XmlByteSerializer>();
 
 builder.Services.AddTransient<Func<FileType, IByteSerializer?>>(provider => key =>
 {
-    switch (key)
+    return key switch
     {
-        case NotinoHomework.Api.Common.FileType.XML:
-            return provider.GetService<XmlByteSerializer>();
-        case NotinoHomework.Api.Common.FileType.JSON:
-            return provider.GetService<JsonByteSerializer>();
-        default: return null;
-    }
+        FileType.XML => provider.GetService<XmlByteSerializer>(),
+        FileType.JSON => provider.GetService<JsonByteSerializer>(),
+        _ => throw new NotImplementedException($"No implementation found for specified key: {key}"),
+    };
 });
 
 var app = builder.Build();

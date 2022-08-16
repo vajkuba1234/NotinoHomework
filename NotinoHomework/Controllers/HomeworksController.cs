@@ -17,13 +17,13 @@ namespace NotinoHomework.Api.Controllers
         }
 
         [HttpPost("convert")]
-        public async Task<IActionResult> ConvertFileAsync([FromForm] ConvertDocumentRequestViewModel viewModel)
+        public async Task<IActionResult> ConvertFileAsync([FromForm] ConvertDocumentRequestViewModel viewModel, CancellationToken token)
         {
-            var result = await mediator.Send(new ConvertDocumentCommand { ConvertTo = viewModel.FileType, FormFile = viewModel.FormFile });
+            var result = await mediator.Send(new ConvertDocumentCommand { ConvertTo = viewModel.FileType, FormFile = viewModel.FormFile }, token);
 
             if (viewModel.Email is not null)
             {
-                _ = await mediator.Send(new SendEmailCommand { From = viewModel.Email.From, To = viewModel.Email.To, Subject = viewModel.Email.Subject });
+                _ = await mediator.Send(new SendEmailCommand { From = viewModel.Email.From, To = viewModel.Email.To, Subject = viewModel.Email.Subject }, token);
             }
 
             return File(result.Content, result.ContentType, result.FileName);
