@@ -4,7 +4,9 @@ namespace NotinoHomework.Api.Common.ViewModels
 {
     public class ConvertDocumentRequestViewModel
     {
-        public FileType FileType { get; set; }
+        public FileType ConvertFrom { get; set; }
+
+        public FileType ConvertTo { get; set; }
 
         [Required]
         public IFormFile FormFile { get; set; }

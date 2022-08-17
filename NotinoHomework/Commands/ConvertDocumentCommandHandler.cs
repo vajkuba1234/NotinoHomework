@@ -1,29 +1,28 @@
 ﻿using MediatR;
 using NotinoHomework.Api.Common.ViewModels;
 using NotinoHomework.Api.Extensions;
-using NotinoHomework.Api.Serializers.Abstractions;
-using NotinoHomework.Common;
+using NotinoHomework.Api.Services.Abstractions;
 
 namespace NotinoHomework.Api.Commands
 {
     public class ConvertDocumentCommandHandler : IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>
     {
-        private readonly IJsonSerializer jsonSerializer;
-        private readonly IXmlSerializer xmlSerializer;
+        private readonly IFileService fileService;
 
-        public ConvertDocumentCommandHandler(IJsonSerializer jsonSerializer, IXmlSerializer xmlSerializer)
+        public ConvertDocumentCommandHandler(IFileService fileService)
         {
-            this.jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
-            this.xmlSerializer = xmlSerializer ?? throw new ArgumentNullException(nameof(xmlSerializer));
+            this.fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
         }
 
         async Task<ConvertDocumentResponseViewModel> IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>.Handle(ConvertDocumentCommand request, CancellationToken cancellationToken)
         {
-            var document = await DeserializeRequestData(request, cancellationToken);
-
-            var outputStream = await SerializeResponseData(document, request, cancellationToken);
-
+            var formFileStream = request.FormFile.OpenReadStream();
             string fileName = GetFileName(request);
+
+            string convertedFilePath = await fileService.ConvertAsync(request.ConvertFrom, request.ConvertTo, formFileStream, fileName, cancellationToken);
+
+            var outputStream = await fileService.LoadAsync(convertedFilePath);
+
             string contentType = GetContentType(request);
 
             var response = new ConvertDocumentResponseViewModel
@@ -34,50 +33,6 @@ namespace NotinoHomework.Api.Commands
             };
 
             return response;
-        }
-
-        private async Task<Document> DeserializeRequestData(ConvertDocumentCommand request, CancellationToken token)
-        {
-            Document? document = null;
-
-            var dataBuffer = await GetBuffer(request.FormFile);
-
-            if (request.ConvertTo == Common.FileType.JSON)
-            {
-                document = await xmlSerializer.DeserializeAsync<Document>(dataBuffer, token);
-            }
-            else if (request.ConvertTo == Common.FileType.XML)
-            {
-                document = await jsonSerializer.DeserializeAsync<Document>(dataBuffer, token);
-            }
-
-            if (document is null)
-            {
-                return new Document();
-            }
-
-            return document;
-        }
-
-        private async Task<Stream> SerializeResponseData(Document document, ConvertDocumentCommand request, CancellationToken token)
-        {
-            Stream? streamData = null;
-
-            if (request.ConvertTo == Common.FileType.JSON)
-            {
-                streamData = await ((IStreamSerializer)jsonSerializer).SerializeAsync(document, token);
-            }
-            else if (request.ConvertTo == Common.FileType.XML)
-            {
-                streamData = await ((IStreamSerializer)xmlSerializer).SerializeAsync(document, token);
-            }
-
-            if (streamData is null)
-            {
-                return new MemoryStream();
-            }
-
-            return streamData;
         }
 
         private string GetFileName(ConvertDocumentCommand request)
@@ -96,16 +51,6 @@ namespace NotinoHomework.Api.Commands
             }
 
             return "application/json";
-        }
-
-        private async Task<byte[]> GetBuffer(IFormFile formFile)
-        {
-            using var incommingFileStream = formFile.OpenReadStream();
-            using var memoryStream = new MemoryStream();
-
-            await incommingFileStream.CopyToAsync(memoryStream);
-
-            return memoryStream.ToArray();
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using NotinoHomework.Api.Services;
+using NotinoHomework.Api.Services.Abstractions;
 
 namespace NotinoHomework.Api.Commands
 {
@@ -14,7 +14,7 @@ namespace NotinoHomework.Api.Commands
 
         async Task<Unit> IRequestHandler<SendEmailCommand, Unit>.Handle(SendEmailCommand request, CancellationToken cancellationToken)
         {
-            await emailService.SendAsync(request.From, request.To, request.Subject, request.Attachment, request.FileName);
+            await emailService.SendAsync(request.From, request.To, request.Subject, request.Attachment, request.FileName, cancellationToken);
 
             return Unit.Value;
         }
