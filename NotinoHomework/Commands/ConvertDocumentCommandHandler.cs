@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using NotinoHomework.Api.Common;
 using NotinoHomework.Api.Common.ViewModels;
 using NotinoHomework.Api.Extensions;
 using NotinoHomework.Api.Serializers.Abstractions;
@@ -9,15 +8,13 @@ namespace NotinoHomework.Api.Commands
 {
     public class ConvertDocumentCommandHandler : IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>
     {
-        private readonly IByteSerializer jsonSerializer;
-        private readonly IByteSerializer xmlSerializer;
+        private readonly IJsonSerializer jsonSerializer;
+        private readonly IXmlSerializer xmlSerializer;
 
-        public ConvertDocumentCommandHandler(Func<FileType, IByteSerializer?> serializerProvider)
+        public ConvertDocumentCommandHandler(IJsonSerializer jsonSerializer, IXmlSerializer xmlSerializer)
         {
-            ArgumentNullException.ThrowIfNull(nameof(serializerProvider));
-
-            jsonSerializer = serializerProvider(FileType.JSON) ?? throw new ArgumentNullException(nameof(serializerProvider));
-            xmlSerializer = serializerProvider(FileType.XML) ?? throw new ArgumentNullException(nameof(serializerProvider));
+            this.jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            this.xmlSerializer = xmlSerializer ?? throw new ArgumentNullException(nameof(xmlSerializer));
         }
 
         async Task<ConvertDocumentResponseViewModel> IRequestHandler<ConvertDocumentCommand, ConvertDocumentResponseViewModel>.Handle(ConvertDocumentCommand request, CancellationToken cancellationToken)
@@ -64,15 +61,15 @@ namespace NotinoHomework.Api.Commands
 
         private async Task<Stream> SerializeResponseData(Document document, ConvertDocumentCommand request, CancellationToken token)
         {
-            byte[] streamData = null;
+            Stream? streamData = null;
 
             if (request.ConvertTo == Common.FileType.JSON)
             {
-                streamData = await jsonSerializer.SerializeAsync(document, token);
+                streamData = await ((IStreamSerializer)jsonSerializer).SerializeAsync(document, token);
             }
             else if (request.ConvertTo == Common.FileType.XML)
             {
-                streamData = await xmlSerializer.SerializeAsync(document, token);
+                streamData = await ((IStreamSerializer)xmlSerializer).SerializeAsync(document, token);
             }
 
             if (streamData is null)
@@ -80,7 +77,7 @@ namespace NotinoHomework.Api.Commands
                 return new MemoryStream();
             }
 
-            return new MemoryStream(streamData);
+            return streamData;
         }
 
         private string GetFileName(ConvertDocumentCommand request)

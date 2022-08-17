@@ -15,22 +15,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.Configure<IEmailOptions>(builder.Configuration.GetSection(EmailOptions.Email));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Email));
 
+builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<IFileService, FileService>();
 
-builder.Services.AddTransient<JsonByteSerializer>();
-builder.Services.AddTransient<XmlByteSerializer>();
+builder.Services.AddTransient<IJsonSerializer, JsonSerializer>();
+builder.Services.AddTransient<IXmlSerializer, XmlSerializer>();
 
-builder.Services.AddTransient<Func<FileType, IByteSerializer?>>(provider => key =>
-{
-    return key switch
-    {
-        FileType.XML => provider.GetService<XmlByteSerializer>(),
-        FileType.JSON => provider.GetService<JsonByteSerializer>(),
-        _ => throw new NotImplementedException($"No implementation found for specified key: {key}"),
-    };
-});
 
 var app = builder.Build();
 
