@@ -1,14 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using NotinoHomework.Api.Configs;
+using NotinoHomework.Api.Services.Abstractions;
 using System.Net.Mail;
 
 namespace NotinoHomework.Api.Services
 {
-    public interface IEmailService
-    {
-        Task SendAsync(string from, string to, string subject, Stream content, string fileName);
-    }
-
     public class EmailService : IEmailService
     {
         private readonly IEmailOptions options;
@@ -20,7 +16,7 @@ namespace NotinoHomework.Api.Services
             this.options = options.Value;
         }
 
-        async Task IEmailService.SendAsync(string from, string to, string subject, Stream content, string fileName)
+        async Task IEmailService.SendAsync(string from, string to, string subject, Stream content, string fileName, CancellationToken token)
         {
             string messageBody = "Check converted file in attachment.";
 
@@ -35,7 +31,7 @@ namespace NotinoHomework.Api.Services
             client.Port = options.Port;
             client.Credentials = new System.Net.NetworkCredential { UserName = options.Username, Password = options.Password };
 
-            await client.SendMailAsync(message);
+            await client.SendMailAsync(message, token);
         }
     }
 }
