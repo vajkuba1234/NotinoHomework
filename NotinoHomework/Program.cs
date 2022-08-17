@@ -1,5 +1,6 @@
 using MediatR;
 using NotinoHomework.Api.Configs;
+using NotinoHomework.Api.Middleware;
 using NotinoHomework.Api.Serializers;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Api.Services;
@@ -34,6 +35,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
