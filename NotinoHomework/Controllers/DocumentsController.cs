@@ -5,13 +5,13 @@ using NotinoHomework.Api.Common.ViewModels;
 
 namespace NotinoHomework.Api.Controllers
 {
-    [Route("api/v1/homeworks")]
+    [Route("api/v1/documents")]
     [ApiController]
-    public class HomeworksController : ControllerBase
+    public class DocumentsController : ControllerBase
     {
         private readonly ISender mediator;
 
-        public HomeworksController(ISender mediator)
+        public DocumentsController(ISender mediator)
         {
             this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         }

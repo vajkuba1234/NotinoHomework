@@ -1,4 +1,5 @@
-﻿using NotinoHomework.Api.Configs;
+﻿using Microsoft.Extensions.Options;
+using NotinoHomework.Api.Configs;
 using System.Net.Mail;
 
 namespace NotinoHomework.Api.Services
@@ -12,9 +13,11 @@ namespace NotinoHomework.Api.Services
     {
         private readonly IEmailOptions options;
 
-        public EmailService(IEmailOptions options)
+        public EmailService(IOptions<EmailOptions> options)
         {
-            this.options = options ?? throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
+
+            this.options = options.Value;
         }
 
         async Task IEmailService.SendAsync(string from, string to, string subject, Stream content, string fileName)
