@@ -1,9 +1,9 @@
 using MediatR;
-using NotinoHomework.Api.Common;
 using NotinoHomework.Api.Configs;
 using NotinoHomework.Api.Serializers;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Api.Services;
+using NotinoHomework.Api.Services.Abstractions;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Email));
+builder.Services.Configure<NotinoHomework.Api.Configs.FileOptions>(builder.Configuration.GetSection(NotinoHomework.Api.Configs.FileOptions.File));
 
 builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<IFileService, FileService>();
@@ -39,14 +40,7 @@ app.UseHttpsRedirection();
 app.UseEndpoints(endpoints => endpoints.MapControllers());
 app.MapControllers();
 
-//app.MapGet("/homeworks/prefilled", async (ISender mediator, CancellationToken cancellationToken) =>
-//{
-//    var result = await mediator.Send(new GetDocumentQuery(), cancellationToken);
-
-//    return Results.Ok(result);
-//});
-
-//app.MapPost("/homeworks/convert/minimal", async (ISender mediator, ConvertDocumentRequestViewModel viewModel) =>
+//app.MapPost("api/v1/documents/convert/minimal", async (ISender mediator, ConvertDocumentRequestViewModel viewModel) =>
 //{
 //    var result = await mediator.Send(new ConvertDocumentCommand { ConvertTo = viewModel.FileType, FormFile = viewModel.FormFile });
 
