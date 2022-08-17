@@ -21,7 +21,7 @@ namespace NotinoHomework.Api.Commands
 
             string convertedFilePath = await fileService.ConvertAsync(request.ConvertFrom, request.ConvertTo, formFileStream, fileName, cancellationToken);
 
-            var outputStream = await fileService.LoadAsync(convertedFilePath);
+            var outputStream = fileService.Load(convertedFilePath);
 
             string contentType = GetContentType(request);
 

@@ -4,7 +4,6 @@ using NotinoHomework.Api.Configs;
 using NotinoHomework.Api.Serializers.Abstractions;
 using NotinoHomework.Api.Services.Abstractions;
 using NotinoHomework.Common;
-using System.Security.AccessControl;
 
 namespace NotinoHomework.Api.Services
 {
@@ -25,39 +24,34 @@ namespace NotinoHomework.Api.Services
 
         async Task<string> IFileService.ConvertAsync(Common.FileType convertFrom, FileType convertTo, Stream stream, string fileName, CancellationToken token)
         {
-            string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileOptions.UploadPath);
+            string directoryPath = fileOptions.UploadPath;
 
-            PrepareConvertedFilesDirectory(filePath);
+            PrepareConvertedFilesDirectory(directoryPath);
 
-            Stream? fileStream = await ConvertInternalAsync(convertFrom, convertTo, stream, token);
+            string filePath = Path.Combine(directoryPath, fileName);
 
-            if (fileStream is null) return string.Empty;
+            string fileContent = await ConvertInternalAsync(convertFrom, convertTo, stream, token);
 
-            await ((IFileService)this).SaveAsync(filePath, fileStream, token);
+            await ((IFileService)this).SaveAsync(filePath, fileContent, token);
 
             return filePath;
         }
 
-        async Task<Stream> IFileService.LoadAsync(string filePath)
+        Stream IFileService.Load(string filePath)
         {
-            var stream = new MemoryStream();
-
-            using var reader = new System.IO.StreamReader(stream);
-
-            string result = await reader.ReadToEndAsync();
-
-            return stream;
+            return new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite, 4096, true);
         }
 
-        async Task IFileService.SaveAsync(string filePath, Stream stream, CancellationToken token)
+        async Task IFileService.SaveAsync(string filePath, string fileContent, CancellationToken token)
         {
-            using var fileStream = new FileStream(filePath, FileMode.Create);
+            using System.IO.FileStream fs = System.IO.File.Create(filePath);
+            var buffer = System.Text.Encoding.UTF8.GetBytes(fileContent);
 
-            await stream.CopyToAsync(fileStream, token);
+            await fs.WriteAsync(buffer);
         }
 
         // To get rid of switch or conditions this could be implemented as Strategy pattern
-        private async Task<Stream> ConvertInternalAsync(Common.FileType from, Common.FileType to, Stream stream, CancellationToken token)
+        private async Task<string> ConvertInternalAsync(Common.FileType from, Common.FileType to, Stream stream, CancellationToken token)
         {
             return (from, to) switch
             {
@@ -67,24 +61,24 @@ namespace NotinoHomework.Api.Services
             };
         }
 
-        private async Task<Stream> ConvertXmlToJson(Stream stream, CancellationToken token)
+        private async Task<string> ConvertXmlToJson(Stream stream, CancellationToken token)
         {
             var document = await xmlSerializer.DeserializeAsync<Document>(stream, token);
 
-            if (document is null) return new MemoryStream();
+            if (document is null) return string.Empty;
 
-            var result = await ((IStreamSerializer)jsonSerializer).SerializeAsync(document, token);
+            var result = await ((IStringSerializer)jsonSerializer).SerializeAsync(document, token);
 
             return result;
         }
 
-        private async Task<Stream> ConvertJsonToXml(Stream stream, CancellationToken token)
+        private async Task<string> ConvertJsonToXml(Stream stream, CancellationToken token)
         {
             var document = await jsonSerializer.DeserializeAsync<Document>(stream, token);
 
-            if (document is null) return new MemoryStream();
+            if (document is null) return string.Empty;
 
-            var result = await ((IStreamSerializer)xmlSerializer).SerializeAsync(document, token);
+            var result = await ((IStringSerializer)xmlSerializer).SerializeAsync(document, token);
 
             return result;
         }
@@ -93,13 +87,7 @@ namespace NotinoHomework.Api.Services
         {
             if (!Directory.Exists(path))
             {
-                var uploadDirectory = Directory.CreateDirectory(path);
-
-                var accessControl = uploadDirectory.GetAccessControl();
-
-                var fsAccessRule = new FileSystemAccessRule("Users", FileSystemRights.FullControl, AccessControlType.Allow);
-                accessControl.AddAccessRule(fsAccessRule);
-                uploadDirectory.SetAccessControl(accessControl);
+                System.IO.Directory.CreateDirectory(path);
             }
         }
     }
