@@ -19,11 +19,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Email));
 builder.Services.Configure<NotinoHomework.Api.Configs.FileOptions>(builder.Configuration.GetSection(NotinoHomework.Api.Configs.FileOptions.File));
 
-builder.Services.AddTransient<IEmailService, EmailService>();
-builder.Services.AddTransient<IFileService, FileService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IFileService, FileService>();
 
-builder.Services.AddTransient<IJsonSerializer, JsonSerializer>();
-builder.Services.AddTransient<IXmlSerializer, XmlSerializer>();
+builder.Services.AddSingleton<IJsonSerializer, JsonSerializer>();
+builder.Services.AddSingleton<IXmlSerializer, XmlSerializer>();
 
 
 var app = builder.Build();
